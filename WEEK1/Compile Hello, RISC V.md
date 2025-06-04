@@ -51,5 +51,4 @@ This confirms that the binary was successfully compiled for the RV32IMC architec
 
 ```
 
-Let me know if you'd like this saved as a `.md` file or added to a larger guide!
 ```
