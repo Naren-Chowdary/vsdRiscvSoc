@@ -1,6 +1,6 @@
 
 
-### ✅ 8. Exploring GCC Optimisation
+### ✅ Exploring GCC Optimisation
 
 **`hello.c` Source Code:**
 
