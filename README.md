@@ -762,3 +762,271 @@ int main() {
 _Add screenshots or terminal outputs here._
 
 </details>
+
+
+
+---
+
+## 11. Linker Script 101
+
+<details>
+<summary><strong>🧾 Instructions</strong></summary>
+
+## 🛠️ Objective
+
+Create a minimal linker script that places:
+
+* `.text` section at address `0x00000000` (Flash)
+* `.data` section at address `0x10000000` (SRAM)
+
+For the `RV32IMC` RISC-V target (bare-metal, no OS).
+
+---
+
+## 📦 Step 1: Create the C Source File
+
+```bash
+nano main.c
+```
+
+Paste this minimal code:
+
+```c
+int x = 42;
+
+int main() {
+    x += 1;
+    while (1);
+    return 0;
+}
+```
+
+Save and exit.
+
+---
+
+## 📁 Step 2: Create the Linker Script
+
+```bash
+nano link.ld
+```
+
+Paste this content:
+
+```ld
+SECTIONS {
+  .text 0x00000000 : {
+    *(.text*)
+  }
+
+  .data 0x10000000 : {
+    *(.data*)
+  }
+}
+```
+
+Save and exit.
+
+---
+
+## 🌐 Step 3: Compile with the Custom Linker Script
+
+```bash
+riscv64-unknown-elf-gcc -march=rv32imac -mabi=ilp32 -nostdlib -T link.ld -o output.elf main.c
+```
+
+This compiles your program without the standard library and uses your custom memory layout.
+
+---
+
+## ✅ Step 4: Verify Section Placement
+
+Use `objdump` to confirm that the sections are correctly placed:
+
+```bash
+riscv64-unknown-elf-objdump -h output.elf
+```
+
+You should see something like:
+
+```
+Idx Name          Size      VMA       LMA       File off  Algn
+  0 .text         xxxx      00000000  00000000  ...
+  1 .data         xxxx      10000000  10000000  ...
+```
+
+This confirms:
+
+* `.text` is at `0x00000000` (Flash)
+* `.data` is at `0x10000000` (SRAM)
+
+---
+
+## 💡 Flash vs. SRAM — Why Are They Separated?
+
+| Memory Type | Section | Properties                             |
+| ----------- | ------- | -------------------------------------- |
+| Flash       | `.text` | Non-volatile, read-only, stores code   |
+| SRAM        | `.data` | Volatile, read-write, stores variables |
+
+* Flash retains your program across resets — perfect for `.text`.
+* SRAM is writable and fast — perfect for `.data`.
+
+</details>
+
+<details>
+<summary><strong>📸 Output & Screenshots</strong></summary>
+
+*Add screenshots of your terminal showing:*
+
+* The compile command
+* The `objdump -h` output
+
+</details>
+
+
+---
+
+## 12. Assembly-only Startup Code
+
+<details>
+<summary><strong>🧾 Instructions</strong></summary>
+
+## 🛠️ Objective
+
+Write a minimal assembly startup file that:
+
+* Defines a `_start` label as the entry point
+* Calls the `main()` function (written in C)
+* Halts the processor using an infinite loop
+
+---
+
+## 📦 Step 1: Create the C File
+
+```bash
+nano main.c
+```
+
+Paste the following code:
+
+```c
+int main() {
+    volatile int *led = (int *)0x10012000;
+    *led = 0xAA;  // Sample value (optional GPIO write)
+    while (1);
+    return 0;
+}
+```
+
+Save and exit.
+
+---
+
+## 🧾 Step 2: Create the Assembly Startup File
+
+```bash
+nano start.S
+```
+
+Paste this:
+
+```asm
+.global _start
+_start:
+    call main      # Call the main function
+hang:
+    j hang         # Infinite loop after main returns
+```
+
+Save and exit.
+
+---
+
+## 🧰 Step 3: Write a Simple Linker Script
+
+```bash
+nano link.ld
+```
+
+Paste this:
+
+```ld
+ENTRY(_start)
+
+SECTIONS {
+  . = 0x00010000;
+
+  .text : {
+    *(.text*)
+  }
+
+  .data : {
+    *(.data*)
+  }
+
+  .bss : {
+    *(.bss*)
+    *(COMMON)
+  }
+}
+```
+
+This places `.text` (including `_start`) at `0x10000`.
+
+---
+
+## ⚙️ Step 4: Compile the Project
+
+```bash
+riscv64-unknown-elf-gcc -march=rv32imac -mabi=ilp32 -nostdlib -T link.ld -o startup.elf start.S main.c
+```
+
+---
+
+## ✅ Step 5: Disassemble to Confirm \_start Exists
+
+```bash
+riscv64-unknown-elf-objdump -d startup.elf | less
+```
+
+Look for:
+
+```
+00010000 <_start>:
+    00010000:  ...   call main
+    00010004:  ...   j hang
+```
+
+This confirms that:
+
+* `_start` is the entry point
+* `main()` is being called from `_start`
+* The CPU halts with an infinite loop
+
+---
+
+## 🧠 Why Use Assembly Startup?
+
+* You need an explicit `_start` label when skipping standard startup files (like `crt0.o`)
+* It ensures control begins from a known address
+* Essential for **bare-metal embedded** projects
+
+</details>
+
+<details>
+<summary><strong>📸 Output & Screenshots</strong></summary>
+
+*Add screenshots of:*
+
+* The terminal showing successful compilation
+* The `_start` disassembly in `objdump -d`
+
+</details>
+
+---
+
+
+
+
+
