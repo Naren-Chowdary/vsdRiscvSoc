@@ -887,130 +887,126 @@ This confirms:
 
 ---
 
-## 12. Assembly-only Startup Code
+
+---
+
+## 12. Start-up Code & `crt0`
 
 <details>
 <summary><strong>🧾 Instructions</strong></summary>
 
 ## 🛠️ Objective
 
-Write a minimal assembly startup file that:
-
-* Defines a `_start` label as the entry point
-* Calls the `main()` function (written in C)
-* Halts the processor using an infinite loop
+Understand what `crt0.S` (C Runtime Zero) does in a bare-metal RISC-V system and how it prepares the environment before `main()` runs.
 
 ---
 
-## 📦 Step 1: Create the C File
+## 🔍 What is `crt0.S`?
 
-```bash
-nano main.c
-```
-
-Paste the following code:
-
-```c
-int main() {
-    volatile int *led = (int *)0x10012000;
-    *led = 0xAA;  // Sample value (optional GPIO write)
-    while (1);
-    return 0;
-}
-```
-
-Save and exit.
+`crt0.S` is the **startup assembly code** that runs **before `main()`** in a bare-metal system. It does not rely on any OS or standard C runtime — it provides the **minimum initialization** needed to run a C program on hardware (or a simulator like QEMU).
 
 ---
 
-## 🧾 Step 2: Create the Assembly Startup File
+## ⚙️ Responsibilities of `crt0.S`
 
-```bash
-nano start.S
-```
+Typical tasks performed:
 
-Paste this:
+1. **Set up the stack pointer**
+
+   * Bare-metal systems don’t have a stack set up automatically.
+   * You typically point it to the top of a memory region (e.g., `0x80004000` or similar).
+
+2. **Zero the `.bss` section**
+
+   * `.bss` holds uninitialized global/static variables.
+   * Must be zeroed manually, usually using two symbols defined in the linker script:
+
+     ```asm
+     la a0, __bss_start
+     la a1, __bss_end
+     loop:
+       beq a0, a1, done
+       sw zero, 0(a0)
+       addi a0, a0, 4
+       j loop
+     done:
+     ```
+
+3. **Call `main()`**
+
+   * It’s a normal `call main` instruction.
+
+4. **Infinite loop after `main()` returns**
+
+   * Prevents the program from running into unknown memory.
+
+   ```asm
+   call main
+   hang:
+     j hang
+   ```
+
+---
+
+## 📦 Where Do You Get `crt0.S`?
+
+Options include:
+
+* **Write your own**, based on the minimal tasks above.
+* Use examples from:
+
+  * **Newlib (`libgloss`)**
+
+    * Folder: `newlib/libgloss/riscv/crt0.S`
+  * **SiFive SDKs or other BSPs (Board Support Packages)** for your target.
+  * **Minimal embedded repos**, e.g., [riscv-blink](https://github.com/sifive/riscv-blink)
+
+These are often customized for:
+
+* Memory layout
+* Peripheral initialization
+* Optional features like interrupt support
+
+---
+
+## 📄 Minimal Example of `crt0.S`
 
 ```asm
-.global _start
+.section .init
+.globl _start
 _start:
-    call main      # Call the main function
+    la sp, _stack_top         # Setup stack pointer
+
+    # Zero out .bss
+    la a0, __bss_start
+    la a1, __bss_end
+bss_clear:
+    bge a0, a1, bss_done
+    sw zero, 0(a0)
+    addi a0, a0, 4
+    j bss_clear
+bss_done:
+
+    call main                 # Call C main()
+
 hang:
-    j hang         # Infinite loop after main returns
-```
-
-Save and exit.
-
----
-
-## 🧰 Step 3: Write a Simple Linker Script
-
-```bash
-nano link.ld
-```
-
-Paste this:
-
-```ld
-ENTRY(_start)
-
-SECTIONS {
-  . = 0x00010000;
-
-  .text : {
-    *(.text*)
-  }
-
-  .data : {
-    *(.data*)
-  }
-
-  .bss : {
-    *(.bss*)
-    *(COMMON)
-  }
-}
-```
-
-This places `.text` (including `_start`) at `0x10000`.
-
----
-
-## ⚙️ Step 4: Compile the Project
-
-```bash
-riscv64-unknown-elf-gcc -march=rv32imac -mabi=ilp32 -nostdlib -T link.ld -o startup.elf start.S main.c
+    j hang                    # Infinite loop after main returns
 ```
 
 ---
 
-## ✅ Step 5: Disassemble to Confirm \_start Exists
+## 🧠 Why This Matters
 
-```bash
-riscv64-unknown-elf-objdump -d startup.elf | less
-```
+Bare-metal systems do **not** have:
 
-Look for:
+* An OS to initialize memory
+* A C runtime to set up globals or the stack
 
-```
-00010000 <_start>:
-    00010000:  ...   call main
-    00010004:  ...   j hang
-```
+So `crt0.S` acts as your **bare-metal bootstrapping code**, and it must be tailored to your:
 
-This confirms that:
-
-* `_start` is the entry point
-* `main()` is being called from `_start`
-* The CPU halts with an infinite loop
-
----
-
-## 🧠 Why Use Assembly Startup?
-
-* You need an explicit `_start` label when skipping standard startup files (like `crt0.o`)
-* It ensures control begins from a known address
-* Essential for **bare-metal embedded** projects
+* CPU architecture (e.g., RV32IMAC)
+* Linker script memory map
+* Toolchain expectations
 
 </details>
 
@@ -1019,277 +1015,588 @@ This confirms that:
 
 *Add screenshots of:*
 
-* The terminal showing successful compilation
-* The `_start` disassembly in `objdump -d`
+* Your `crt0.S` file
+* Terminal running the ELF file showing your program executes after this startup code
+* Memory layout in linker script (`__bss_start`, `__bss_end`, `_stack_top`)
 
 </details>
 
 ---
 
-## 14. Relocate `.data` and `.bss` Sections
+
+## 13. Interrupt Primer
+
+<details>
+<summary><strong>🧾 Instructions</strong></summary>
+
+### ❓ Objective
+
+Demonstrate how to enable the **machine-timer interrupt (MTIP)** and write a simple handler in C/assembly.
+
+---
+
+### 🧰 Steps Summary
+
+- Set up `mtime` and `mtimecmp` registers using memory-mapped I/O (CLINT).
+- Enable the **MTIE** bit in the `mie` CSR.
+- Enable the **MIE** bit in the `mstatus` CSR.
+- Set the `mtvec` register to point to your interrupt handler.
+- Write a C handler using `__attribute__((interrupt))`.
+- Add `UART` prints inside the handler to show periodic timer output in QEMU.
+
+---
+
+### 🧾 Minimal Code Snippets
+
+**Timer Handler in C:**
+```c
+void __attribute__((interrupt)) timer_handler(void) {
+    *mtimecmp = *mtime + 100000;
+    interrupt_counter++;
+    uart_puts("Timer fired: ");
+    uart_putint(interrupt_counter);
+    uart_putc('\n');
+}
+````
+
+**Interrupt Setup:**
+
+```c
+write_csr(mtvec, (uint32_t)timer_handler);
+write_csr(mie, read_csr(mie) | (1 << 7));       // Enable MTIE
+write_csr(mstatus, read_csr(mstatus) | (1 << 3)); // Enable MIE
+```
+
+**Startup Assembly (`crt0.S`):**
+
+```asm
+.section .text
+.globl _start
+_start:
+  la sp, stack_top
+  call main
+  j .
+```
+
+**Linker Script Snippet:**
+
+```ld
+SECTIONS {
+  . = 0x80000000;
+  .text : { *(.text*) }
+  .data : { *(.data*) }
+  .bss  : { *(.bss*) }
+}
+```
+
+**Build Command:**
+
+```bash
+riscv32-unknown-elf-gcc -Wall -O2 -ffreestanding -nostdlib -mabi=ilp32 -march=rv32imac \
+  -o mtip.elf mtip.c crt0.S -T link.ld
+```
+
+**Run in QEMU:**
+
+```bash
+qemu-system-riscv32 -nographic -machine virt -bios none -kernel mtip.elf -serial mon:stdio
+```
+
+---
+
+### 🧠 Why It Matters
+
+* Essential for preemptive multitasking and real-time systems.
+* Lays the foundation for writing OS-level features on RISC-V.
+* Helps understand core concepts of CSRs, CLINT, and trap handling in bare-metal environments.
+
+</details>
+
+<details>
+<summary><strong>📸 Output & Screenshots</strong></summary>
+
+```
+Starting MTIP timer demo...
+Timer fired: 1
+Timer fired: 2
+Timer fired: 3
+...
+```
+
+* Add a screenshot of your terminal showing timer interrupt firing.
+* Optionally show `uart_putint()` output or ISR behavior in `objdump`.
+
+</details>
+```
+
+---
+
+
+## 14. rv32imac vs rv32imc – What’s the “A”?
+
+<details>
+<summary><strong>🧾 Instructions</strong></summary>
+
+### ❓ What is the “A” Extension?
+
+The `'A'` extension in `rv32imac` stands for **Atomic Instructions**, and it's what differentiates `rv32imac` from `rv32imc`. These instructions are crucial in concurrent and multi-core systems where multiple threads or cores access shared memory.
+
+---
+
+### 🧠 Why Is It Useful?
+
+The `A` extension adds **atomic read-modify-write instructions** to the instruction set. These are essential for:
+
+- Building **lock-free data structures**
+- Implementing **mutexes, semaphores, and spinlocks**
+- Writing **OS kernels** or **thread-safe embedded code**
+- Preventing **race conditions** during memory access
+
+---
+
+### 🧩 Instructions Introduced
+
+The extension introduces the following atomic instructions:
+
+| Instruction   | Description                             |
+|---------------|-----------------------------------------|
+| `lr.w`        | Load-Reserved (32-bit)                  |
+| `sc.w`        | Store-Conditional (32-bit)              |
+| `amoadd.w`    | Atomic Add                              |
+| `amoswap.w`   | Atomic Swap                             |
+| `amoor.w`     | Atomic OR                               |
+| `amoand.w`    | Atomic AND                              |
+| `amoxor.w`    | Atomic XOR                              |
+| `amomin.w`    | Atomic Minimum (signed)                 |
+| `amomax.w`    | Atomic Maximum (signed)                 |
+| `amominu.w`   | Atomic Minimum (unsigned)               |
+| `amomaxu.w`   | Atomic Maximum (unsigned)               |
+
+These allow **atomic memory updates** without disabling interrupts or using heavy locks.
+
+---
+
+### 📌 Summary
+
+If you're writing:
+- Bare-metal firmware for a **single-core system**: `rv32imc` is usually enough.
+- A **multi-threaded application** or **OS kernel**: You need `rv32imac` for atomic ops.
+
+</details>
+
+<details>
+<summary><strong>📸 Output & Screenshots</strong></summary>
+
+*You can add a screenshot of:*
+- A disassembly (`objdump`) showing `lr.w`, `sc.w`, or `amoadd.w` in use.
+- Sample output from running a test for lock-free access using atomics in QEMU.
+
+</details>
+```
+---
+
+
+## 15. Atomic Test Program
+
+<details>
+<summary><strong>🧾 Instructions</strong></summary>
+
+### ❓ Objective
+
+Provide a **two-thread mutex example** (pseudo-threads inside `main`) using `lr.w` / `sc.w` atomic primitives on **RV32** architecture.
+
+---
+
+### 🔒 Approach: Spinlock using `lr.w` / `sc.w`
+
+- The lock is implemented as a **spinlock** using RISC-V's `lr.w` (load-reserved) and `sc.w` (store-conditional) instructions.
+- Only one "pseudo-thread" (loop block in main) can enter the critical section at a time.
+
+---
+
+### 🔐 Spinlock Code (C + Inline ASM)
+
+```c
+volatile int lock = 0;
+
+void acquire_lock(volatile int *lock) {
+    int tmp;
+    do {
+        asm volatile (
+            "lr.w %[tmp], (%[addr]);\n"
+            "bnez %[tmp], 1f;\n"
+            "li %[tmp], 1;\n"
+            "sc.w %[tmp], %[tmp], (%[addr]);\n"
+            "1:"
+            : [tmp] "=&r" (tmp)
+            : [addr] "r" (lock)
+            : "memory"
+        );
+    } while (tmp != 0);  // Retry if store-conditional failed
+}
+
+void release_lock(volatile int *lock) {
+    *lock = 0;
+}
+````
+
+---
+
+### 🤖 Simulated Two Threads in `main()`
+
+```c
+int shared_counter = 0;
+
+int main() {
+    for (int i = 0; i < 5; i++) { // Thread 1
+        acquire_lock(&lock);
+        shared_counter++;
+        uart_puts("Thread 1 incremented counter: ");
+        uart_putint(shared_counter);
+        uart_putc('\n');
+        release_lock(&lock);
+    }
+
+    for (int i = 0; i < 5; i++) { // Thread 2
+        acquire_lock(&lock);
+        shared_counter++;
+        uart_puts("Thread 2 incremented counter: ");
+        uart_putint(shared_counter);
+        uart_putc('\n');
+        release_lock(&lock);
+    }
+
+    while (1);
+}
+```
+
+* Use UART prints to observe mutex effectiveness in QEMU (no overlapping prints or skipped values).
+* Ensure `-march=rv32im` or `rv32imac` when compiling, as `lr.w` / `sc.w` are from the `'A'` extension.
+
+---
+
+### 🧠 Why It Matters
+
+* Demonstrates **real-world use** of atomic primitives (`lr.w`, `sc.w`).
+* Teaches **synchronization** and **concurrency** on a bare-metal system.
+* Foundation for **multi-core** safe programming and OS-level synchronization.
+
+</details>
+
+<details>
+<summary><strong>📸 Output & Screenshots</strong></summary>
+
+```
+Thread 1 incremented counter: 1
+Thread 1 incremented counter: 2
+Thread 1 incremented counter: 3
+Thread 1 incremented counter: 4
+Thread 1 incremented counter: 5
+Thread 2 incremented counter: 6
+Thread 2 incremented counter: 7
+Thread 2 incremented counter: 8
+Thread 2 incremented counter: 9
+Thread 2 incremented counter: 10
+```
+
+* Screenshot of terminal with mutex-protected increments.
+* Optional: `objdump` showing `lr.w` and `sc.w` usage.
+
+</details>
+```
+
+---
+
+## 16. Using Newlib printf Without an OS
 
 <details>
 <summary><strong>🧾 Instructions</strong></summary>
 
 ## 🛠️ Objective
 
-Change the linker script to place:
-
-* `.data` at address `0x30000000`
-* `.bss` at address `0x40000000`
-
-This is often done to match specific **hardware memory maps** in embedded systems.
+Enable the use of `printf()` in a bare-metal RISC-V environment by retargeting the `_write` syscall to send characters to a memory-mapped UART.
 
 ---
 
-## 📦 Step 1: Update the Linker Script
+## 📦 Requirements
 
-```bash
-nano link.ld
-```
+* Memory-mapped UART output (e.g., at `0x10000000`)
+* Newlib for standard C support (e.g., `printf`)
+* Your own `syscalls.c` implementing at least `_write` and `_sbrk`
+* Custom `link.ld` defining `_end`
+* Startup file (`crt0.S`) for bare-metal boot
 
-Modify it like this:
+---
 
-```ld
-ENTRY(_start)
+## 📄 Code Snippets
 
-SECTIONS {
-  . = 0x20000;
+### 🔧 `syscalls.c`
 
-  .text : {
-    *(.text*)
-  }
+```c
+#define UART0_ADDR 0x10000000UL
 
-  .data 0x30000000 : {
-    *(.data*)
-  }
+int _write(int fd, char *buf, int len) {
+    volatile char *uart = (char *)UART0_ADDR;
+    for (int i = 0; i < len; i++) {
+        uart[0] = buf[i];
+    }
+    return len;
+}
 
-  .bss  0x40000000 : {
-    *(.bss*)
-    *(COMMON)
-  }
+void* _sbrk(int incr) {
+    extern char _end;
+    static char *heap_end = &_end;
+    char *prev_heap_end = heap_end;
+    heap_end += incr;
+    return (void *)prev_heap_end;
 }
 ```
 
 ---
 
-## 📁 Step 2: Minimal Source Files (if needed)
+### 🔗 `link.ld` (add `_end` after `.bss`)
 
-### `start.S`:
+```ld
+.bss : {
+  *(.bss*)
+  _end = .;
+}
+```
+
+---
+
+### 🚀 `main.c`
+
+```c
+#include <stdio.h>
+
+int main() {
+    printf("Hello from printf over UART!\n");
+    while (1);
+    return 0;
+}
+```
+
+---
+
+### 📦 Startup `crt0.S`
 
 ```asm
+.section .text
 .global _start
 _start:
+    la sp, stack_top
     call main
-hang:
-    j hang
-```
+    j .
 
-### `main.c`:
-
-```c
-int global_var = 100;   // Placed in .data
-int zero_array[10];     // Placed in .bss
-
-int main() {
-    global_var++;
-    zero_array[0] = global_var;
-    while (1);
-    return 0;
-}
+.section .bss
+.space 4096
+stack_top:
 ```
 
 ---
 
-## ⚙️ Step 3: Compile
+### 🧱 Build Command
 
 ```bash
-riscv64-unknown-elf-gcc -march=rv32imac -mabi=ilp32 -nostdlib -T link.ld -o relocated.elf start.S main.c
+riscv32-unknown-elf-gcc -Wall -O2 -ffreestanding -nostdlib \
+  -mabi=ilp32 -march=rv32imac \
+  -o printf.elf main.c syscalls.c crt0.S -T link.ld -lc -lgcc
 ```
 
 ---
 
-## ✅ Step 4: Verify Section Layout
-
-Use `objdump` to confirm section addresses:
+### 🏃‍♂️ Run on QEMU
 
 ```bash
-riscv64-unknown-elf-objdump -h relocated.elf
+qemu-system-riscv32 -nographic -machine virt -bios none \
+  -kernel printf.elf -serial mon:stdio
 ```
-
-Expected output:
-
-```
-Idx Name          Size      VMA       LMA       File off  Algn
-  0 .text         xxxx      00020000  00020000
-  1 .data         xxxx      30000000  30000000
-  2 .bss          xxxx      40000000  40000000
-```
-
----
-
-## 💡 Why Move `.data` and `.bss`?
-
-| Section | Address      | Purpose                        |
-| ------- | ------------ | ------------------------------ |
-| `.text` | `0x20000`    | Code in Flash/ROM              |
-| `.data` | `0x30000000` | Writable initialized data      |
-| `.bss`  | `0x40000000` | Writable zero-initialized data |
-
-Custom placement is common in SoCs where each memory region is mapped for specific uses (Flash, RAM, peripherals, etc.).
 
 </details>
 
 <details>
 <summary><strong>📸 Output & Screenshots</strong></summary>
 
-*Add screenshots of:*
+### ✅ Expected UART Output
 
-* The modified `link.ld`
-* The `objdump -h relocated.elf` output showing .data and .bss at custom addresses
+```
+Hello from printf over UART!
+```
+
+This confirms that `printf()` is internally using `_write()`, and it's been redirected to the UART peripheral.
 
 </details>
 
+
 ---
 
-## 15. Read the `mhartid` CSR (Core ID Register)
+## 17. Endianness & Struct Packing
 
 <details>
 <summary><strong>🧾 Instructions</strong></summary>
 
 ## 🛠️ Objective
 
-Use RISC-V inline assembly in C to read the `mhartid` CSR, which holds the **core/hart ID**. This is useful in multi-core environments to identify which CPU core is executing the code.
+Determine the endianness of a RISC-V RV32 system using a simple C trick with a union to inspect byte ordering.
 
 ---
 
-## 📦 Step 1: Create the Source File
+## ❓ Is RV32 Little-Endian?
 
-```bash
-nano main.c
-```
+Yes — **RV32 is little-endian by default**, meaning the **least significant byte is stored first** in memory.
 
-Paste this code:
+To confirm this, we’ll use a **union** that allows accessing a `uint32_t` and its underlying bytes as a `uint8_t[4]` array.
+
+---
+
+## 📄 C Code (Union Trick)
 
 ```c
+#include <stdio.h>
 #include <stdint.h>
 
 int main() {
-    uint32_t hart_id;
+    union {
+        uint32_t value;
+        uint8_t bytes[4];
+    } test;
 
-    asm volatile("csrr %0, mhartid" : "=r"(hart_id));
+    test.value = 0x01020304;
 
-    while (1);  // Set a breakpoint and inspect `hart_id` in GDB
+    printf("Byte 0: 0x%02x\n", test.bytes[0]);
+    printf("Byte 1: 0x%02x\n", test.bytes[1]);
+    printf("Byte 2: 0x%02x\n", test.bytes[2]);
+    printf("Byte 3: 0x%02x\n", test.bytes[3]);
+
+    while (1);
     return 0;
 }
 ```
 
-Save and exit.
+---
+
+## 🔍 Explanation
+
+If RV32 is **little-endian**, then the bytes will be laid out like this in memory:
+
+| Memory Address | Byte | Value  |
+| -------------- | ---- | ------ |
+| `&bytes[0]`    | LSB  | `0x04` |
+| `&bytes[1]`    |      | `0x03` |
+| `&bytes[2]`    |      | `0x02` |
+| `&bytes[3]`    | MSB  | `0x01` |
 
 ---
 
-## 📁 Step 2: Minimal Assembly Startup
+## ⚙️ Compilation Command
 
 ```bash
-nano start.S
-```
-
-Paste this:
-
-```asm
-.global _start
-_start:
-    call main
-hang:
-    j hang
+riscv32-unknown-elf-gcc -Wall -O2 -ffreestanding -nostdlib \
+  -mabi=ilp32 -march=rv32imac \
+  -o endian.elf main.c syscalls.c crt0.S -T link.ld -lc -lgcc
 ```
 
 ---
 
-## 🧾 Step 3: Linker Script (`link.ld`)
+## 🚀 Run on QEMU
 
 ```bash
-nano link.ld
+qemu-system-riscv32 -nographic -machine virt -bios none \
+  -kernel endian.elf -serial mon:stdio
 ```
-
-Use this layout:
-
-```ld
-ENTRY(_start)
-
-SECTIONS {
-  . = 0x20000;
-
-  .text : {
-    *(.text*)
-  }
-
-  .data : {
-    *(.data*)
-  }
-
-  .bss : {
-    *(.bss*)
-    *(COMMON)
-  }
-}
-```
-
----
-
-## ⚙️ Step 4: Compile the Code
-
-```bash
-riscv64-unknown-elf-gcc -march=rv32imac -mabi=ilp32 -O0 -g -nostdlib -T link.ld -o mhartid.elf start.S main.c
-```
-
----
-
-## ✅ Step 5: Inspect in GDB
-
-```bash
-riscv64-unknown-elf-gdb mhartid.elf
-```
-
-Inside GDB:
-
-```gdb
-(gdb) target sim
-(gdb) load
-(gdb) break main
-(gdb) run
-(gdb) x/w &hart_id
-```
-
-You should see:
-
-```
-0x1, 0x2, etc.   // depending on the hart/core
-```
-
----
-
-## 🧠 What is `mhartid`?
-
-* It stands for **“Machine Hart ID”**
-* Each hart (hardware thread = RISC-V core) has a unique ID
-* In single-core QEMU, `mhartid` is usually `0`
 
 </details>
 
 <details>
 <summary><strong>📸 Output & Screenshots</strong></summary>
 
-*Add screenshots of:*
+### ✅ Expected Output (for little-endian):
 
-* GDB showing the value of `hart_id`
-* `x/w &hart_id` output
-* Optional: disassembly of the `csrr` instruction
+```
+Byte 0: 0x04
+Byte 1: 0x03
+Byte 2: 0x02
+Byte 3: 0x01
+```
+
+This confirms that the least significant byte (`0x04`) is stored at the lowest address, meaning **RV32 is little-endian**.
 
 </details>
 
 
+---
+
+## 🧾 Summary
+
+<details>
 
 
+## 🛠️ Objective
+
+These tasks are focused on building a complete, low-level understanding of **RISC-V-based system design**, simulation, and software bring-up. The goal was to remove the abstraction layers imposed by modern OS environments and experience what it means to program hardware directly, from the ground up.
+
+---
+
+## 📘 What is RISC-V?
+
+* RISC-V is an **open Instruction Set Architecture (ISA)** — a blueprint that defines the instructions a processor can execute.
+* ❌ It is **not** a processor, Verilog code, or a physical chip.
+* ✅ It **can** be implemented in hardware using languages like Verilog.
+* This decoupling is critical — like a programming language is separate from its compiler, RISC-V is separate from the CPU that implements it.
+
+---
+
+## 📅 Why We Did These Tasks
+
+Each weekly task was designed to teach **core concepts** behind bare-metal embedded systems using RISC-V.
+
+| Task(s) | Concept Learned                                                                     |
+| ------- | ----------------------------------------------------------------------------------- |
+| 1–2     | Installed the RISC-V toolchain, wrote and compiled basic C programs.                |
+| 3–4     | Used `objdump` and `readelf` to inspect ELF files and analyze register usage.       |
+| 5       | Observed stack behavior by examining disassembly and runtime register changes.      |
+| 6–7     | Used memory-mapped I/O to print characters by writing directly to UART.             |
+| 8–9     | Explored how to control hardware directly without an OS.                            |
+| 10–11   | Wrote custom linker scripts and minimal startup code (`crt0.S`).                    |
+| 12      | Understood full startup sequence: setting up stack, zeroing `.bss`, calling `main`. |
+| 13      | Enabled timer interrupts using `mtime` and `mtimecmp` and wrote a custom ISR.       |
+| 14      | Compared `RV32IMC` vs `RV32IMAC` — explained the Atomic `'A'` extension.            |
+| 15      | Built a spinlock using `lr.w` / `sc.w` to simulate two-thread mutex.                |
+| 16      | Retargeted `_write()` to send `printf()` output to UART without an OS.              |
+| 17      | Verified **little-endian** behavior on RV32 using a union trick in C.               |
+
+---
+
+## 🧠 Final Reflection
+
+Through these tasks, we developed a **full-stack perspective** on bare-metal RISC-V systems. Key takeaways:
+
+* Built and ran RISC-V programs without any operating system.
+* Controlled UART and hardware via memory-mapped I/O.
+* Handled timer interrupts using low-level CSRs.
+* Wrote startup code (`crt0.S`) and linker scripts (`link.ld`) manually.
+* Explored atomic memory operations and how concurrency is handled in hardware.
+* Implemented `printf()` in a bare-metal context by writing a custom `_write()`.
+
+---
+
+## 🎯 Why This Matters
+
+We didn’t just learn RISC-V as an architecture — we **experienced** the process of bringing up a real system based on it. This included:
+
+* Toolchain usage
+* Bootstrapping the runtime
+* Writing interrupt handlers
+* Understanding processor state
+* Debugging with disassembly
+* And finally, interacting with real hardware (UART)
+
+This foundation is **essential** for embedded systems, OS kernel development, device driver design, and silicon bring-up.
+
+</details>
+
+
+---
 
 
