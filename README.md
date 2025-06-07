@@ -1026,6 +1026,269 @@ This confirms that:
 
 ---
 
+## 14. Relocate `.data` and `.bss` Sections
+
+<details>
+<summary><strong>🧾 Instructions</strong></summary>
+
+## 🛠️ Objective
+
+Change the linker script to place:
+
+* `.data` at address `0x30000000`
+* `.bss` at address `0x40000000`
+
+This is often done to match specific **hardware memory maps** in embedded systems.
+
+---
+
+## 📦 Step 1: Update the Linker Script
+
+```bash
+nano link.ld
+```
+
+Modify it like this:
+
+```ld
+ENTRY(_start)
+
+SECTIONS {
+  . = 0x20000;
+
+  .text : {
+    *(.text*)
+  }
+
+  .data 0x30000000 : {
+    *(.data*)
+  }
+
+  .bss  0x40000000 : {
+    *(.bss*)
+    *(COMMON)
+  }
+}
+```
+
+---
+
+## 📁 Step 2: Minimal Source Files (if needed)
+
+### `start.S`:
+
+```asm
+.global _start
+_start:
+    call main
+hang:
+    j hang
+```
+
+### `main.c`:
+
+```c
+int global_var = 100;   // Placed in .data
+int zero_array[10];     // Placed in .bss
+
+int main() {
+    global_var++;
+    zero_array[0] = global_var;
+    while (1);
+    return 0;
+}
+```
+
+---
+
+## ⚙️ Step 3: Compile
+
+```bash
+riscv64-unknown-elf-gcc -march=rv32imac -mabi=ilp32 -nostdlib -T link.ld -o relocated.elf start.S main.c
+```
+
+---
+
+## ✅ Step 4: Verify Section Layout
+
+Use `objdump` to confirm section addresses:
+
+```bash
+riscv64-unknown-elf-objdump -h relocated.elf
+```
+
+Expected output:
+
+```
+Idx Name          Size      VMA       LMA       File off  Algn
+  0 .text         xxxx      00020000  00020000
+  1 .data         xxxx      30000000  30000000
+  2 .bss          xxxx      40000000  40000000
+```
+
+---
+
+## 💡 Why Move `.data` and `.bss`?
+
+| Section | Address      | Purpose                        |
+| ------- | ------------ | ------------------------------ |
+| `.text` | `0x20000`    | Code in Flash/ROM              |
+| `.data` | `0x30000000` | Writable initialized data      |
+| `.bss`  | `0x40000000` | Writable zero-initialized data |
+
+Custom placement is common in SoCs where each memory region is mapped for specific uses (Flash, RAM, peripherals, etc.).
+
+</details>
+
+<details>
+<summary><strong>📸 Output & Screenshots</strong></summary>
+
+*Add screenshots of:*
+
+* The modified `link.ld`
+* The `objdump -h relocated.elf` output showing .data and .bss at custom addresses
+
+</details>
+
+---
+
+## 15. Read the `mhartid` CSR (Core ID Register)
+
+<details>
+<summary><strong>🧾 Instructions</strong></summary>
+
+## 🛠️ Objective
+
+Use RISC-V inline assembly in C to read the `mhartid` CSR, which holds the **core/hart ID**. This is useful in multi-core environments to identify which CPU core is executing the code.
+
+---
+
+## 📦 Step 1: Create the Source File
+
+```bash
+nano main.c
+```
+
+Paste this code:
+
+```c
+#include <stdint.h>
+
+int main() {
+    uint32_t hart_id;
+
+    asm volatile("csrr %0, mhartid" : "=r"(hart_id));
+
+    while (1);  // Set a breakpoint and inspect `hart_id` in GDB
+    return 0;
+}
+```
+
+Save and exit.
+
+---
+
+## 📁 Step 2: Minimal Assembly Startup
+
+```bash
+nano start.S
+```
+
+Paste this:
+
+```asm
+.global _start
+_start:
+    call main
+hang:
+    j hang
+```
+
+---
+
+## 🧾 Step 3: Linker Script (`link.ld`)
+
+```bash
+nano link.ld
+```
+
+Use this layout:
+
+```ld
+ENTRY(_start)
+
+SECTIONS {
+  . = 0x20000;
+
+  .text : {
+    *(.text*)
+  }
+
+  .data : {
+    *(.data*)
+  }
+
+  .bss : {
+    *(.bss*)
+    *(COMMON)
+  }
+}
+```
+
+---
+
+## ⚙️ Step 4: Compile the Code
+
+```bash
+riscv64-unknown-elf-gcc -march=rv32imac -mabi=ilp32 -O0 -g -nostdlib -T link.ld -o mhartid.elf start.S main.c
+```
+
+---
+
+## ✅ Step 5: Inspect in GDB
+
+```bash
+riscv64-unknown-elf-gdb mhartid.elf
+```
+
+Inside GDB:
+
+```gdb
+(gdb) target sim
+(gdb) load
+(gdb) break main
+(gdb) run
+(gdb) x/w &hart_id
+```
+
+You should see:
+
+```
+0x1, 0x2, etc.   // depending on the hart/core
+```
+
+---
+
+## 🧠 What is `mhartid`?
+
+* It stands for **“Machine Hart ID”**
+* Each hart (hardware thread = RISC-V core) has a unique ID
+* In single-core QEMU, `mhartid` is usually `0`
+
+</details>
+
+<details>
+<summary><strong>📸 Output & Screenshots</strong></summary>
+
+*Add screenshots of:*
+
+* GDB showing the value of `hart_id`
+* `x/w &hart_id` output
+* Optional: disassembly of the `csrr` instruction
+
+</details>
+
+
 
 
 
