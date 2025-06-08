@@ -394,14 +394,6 @@ Each column represents:
 
 </details>
 
-<details>
-<summary><strong>📸 Output & Screenshots</strong></summary>
-
-_Add screenshots or terminal outputs here._
-
-</details>
-
----
 
 ## 6. Stepping With GDB
 
