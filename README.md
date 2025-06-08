@@ -1,5 +1,8 @@
 # RISC-V Internship Log
 
+## 🛠️ Objective
+
+These tasks are focused on building a complete, low-level understanding of **RISC-V-based system design**, simulation, and software bring-up. The goal was to remove the abstraction layers imposed by modern OS environments and experience what it means to program hardware directly, from the ground up.
 
 ---
 
@@ -93,7 +96,8 @@ riscv32-unknown-elf-gdb --version
 <details>
 <summary><strong>📸 Output & Screenshots</strong></summary>
 
-_Add screenshots or terminal outputs here._
+![image](https://github.com/user-attachments/assets/4b74a2c0-7e89-49ac-8640-2667047ae4f9)
+
 
 </details>
 
@@ -164,7 +168,8 @@ This confirms that the binary was successfully compiled for the RV32IMC architec
 <details>
 <summary><strong>📸 Output & Screenshots</strong></summary>
 
-_Add screenshots or terminal outputs here._
+![image](https://github.com/user-attachments/assets/5346adc5-d046-4273-a028-0245e8d59145)
+
 
 </details>
 
@@ -244,7 +249,9 @@ These reverse the prologue steps, restoring the original state before returning.
 <details>
 <summary><strong>📸 Output & Screenshots</strong></summary>
 
-_Add screenshots or terminal outputs here._
+![image](https://github.com/user-attachments/assets/43dcf14d-3a6b-4889-8f9f-d7843ac178e3)
+
+![image](https://github.com/user-attachments/assets/b4c2522a-2f81-48d0-9e41-4e4541ebb78e)
 
 </details>
 
@@ -324,7 +331,10 @@ Each column represents:
 <details>
 <summary><strong>📸 Output & Screenshots</strong></summary>
 
-_Add screenshots or terminal outputs here._
+![image](https://github.com/user-attachments/assets/68b57372-a03a-4e51-bc3b-905d5b441cf4)
+![image](https://github.com/user-attachments/assets/4f5b4ef1-8944-48ad-87a5-54c50389688e)
+![image](https://github.com/user-attachments/assets/d25db213-1570-46ba-9777-c71ee90767de)
+
 
 </details>
 
@@ -439,7 +449,9 @@ Breakpoint 1, main () at hello.c:4
 <details>
 <summary><strong>📸 Output & Screenshots</strong></summary>
 
-_Add screenshots or terminal outputs here._
+![image](https://github.com/user-attachments/assets/cc102f63-dc88-48dd-a2fe-64da362e2ada)
+![image](https://github.com/user-attachments/assets/e179c793-03d9-4ed5-a02b-ef1e9cb06d70)
+
 
 </details>
 
@@ -502,7 +514,9 @@ qemu-system-riscv32 -nographic -machine sifive_e -kernel hello.elf -bios none
 <details>
 <summary><strong>📸 Output & Screenshots</strong></summary>
 
-_Add screenshots or terminal outputs here._
+![image](https://github.com/user-attachments/assets/660ccbf1-5af3-4c3c-a3c8-e7dddcd7de13)
+
+![image](https://github.com/user-attachments/assets/475afff3-875c-4f55-896f-363d60c612d2)
 
 </details>
 
@@ -640,7 +654,9 @@ int main() {
 <details>
 <summary><strong>📸 Output & Screenshots</strong></summary>
 
-_Add screenshots or terminal outputs here._
+![image](https://github.com/user-attachments/assets/981649f0-be96-4a1f-9c7b-1cbcd977b1d4)
+![image](https://github.com/user-attachments/assets/20534496-c117-4dbf-8d39-0d60718bfd9a)
+
 
 </details>
 
@@ -715,7 +731,11 @@ riscv64-unknown-elf-objdump -d hello.elf > hello.dump
 <details>
 <summary><strong>📸 Output & Screenshots</strong></summary>
 
-_Add screenshots or terminal outputs here._
+![image](https://github.com/user-attachments/assets/df8e5950-af39-45cb-bce9-57b749f4a957)
+![image](https://github.com/user-attachments/assets/1f9b372f-15c6-4595-ba3b-af497c64aa9c)
+![image](https://github.com/user-attachments/assets/da22d8a0-b05c-4bdf-b32f-779835ce1510)
+![image](https://github.com/user-attachments/assets/3196df89-8dba-4a9d-9ee9-c80cfbf0802e)
+
 
 </details>
 
@@ -759,7 +779,9 @@ int main() {
 <details>
 <summary><strong>📸 Output & Screenshots</strong></summary>
 
-_Add screenshots or terminal outputs here._
+![image](https://github.com/user-attachments/assets/887acfb6-fb9a-4e06-965b-f24b2d2067bb)
+![image](https://github.com/user-attachments/assets/3a6f0583-3b38-441d-ba7d-12ece71451cd)
+
 
 </details>
 
@@ -877,10 +899,8 @@ This confirms:
 <details>
 <summary><strong>📸 Output & Screenshots</strong></summary>
 
-*Add screenshots of your terminal showing:*
+![image](https://github.com/user-attachments/assets/99fc06c3-5bc4-4b9b-a810-22f5c01e15b2)
 
-* The compile command
-* The `objdump -h` output
 
 </details>
 
@@ -1013,11 +1033,11 @@ So `crt0.S` acts as your **bare-metal bootstrapping code**, and it must be tailo
 <details>
 <summary><strong>📸 Output & Screenshots</strong></summary>
 
-*Add screenshots of:*
+![image](https://github.com/user-attachments/assets/937d9bd7-1818-4380-b310-016f53694943)
+![image](https://github.com/user-attachments/assets/fbc52086-97be-4f8c-9ec6-4aea9aeb84fa)
+![image](https://github.com/user-attachments/assets/2028e74c-a734-4eb0-9810-c92b92934c48)
+![image](https://github.com/user-attachments/assets/9400e289-78b0-4d24-a331-7bcc57585db3)
 
-* Your `crt0.S` file
-* Terminal running the ELF file showing your program executes after this startup code
-* Memory layout in linker script (`__bss_start`, `__bss_end`, `_stack_top`)
 
 </details>
 
@@ -1115,19 +1135,15 @@ qemu-system-riscv32 -nographic -machine virt -bios none -kernel mtip.elf -serial
 <details>
 <summary><strong>📸 Output & Screenshots</strong></summary>
 
-```
-Starting MTIP timer demo...
-Timer fired: 1
-Timer fired: 2
-Timer fired: 3
-...
-```
 
-* Add a screenshot of your terminal showing timer interrupt firing.
-* Optionally show `uart_putint()` output or ISR behavior in `objdump`.
+![image](https://github.com/user-attachments/assets/9b65fc49-e209-4d7f-ae5f-f2ee07ddb5e8)
+![image](https://github.com/user-attachments/assets/98c9a6e0-51b6-496e-8124-3c894a04c83c)
+![Image](https://github.com/user-attachments/assets/808acfef-bc75-48ef-8501-395b1bdec3d5)
+
+
 
 </details>
-```
+
 
 ---
 
@@ -1184,16 +1200,6 @@ If you're writing:
 
 </details>
 
-<details>
-<summary><strong>📸 Output & Screenshots</strong></summary>
-
-*You can add a screenshot of:*
-- A disassembly (`objdump`) showing `lr.w`, `sc.w`, or `amoadd.w` in use.
-- Sample output from running a test for lock-free access using atomics in QEMU.
-
-</details>
-```
----
 
 
 ## 15. Atomic Test Program
@@ -1286,24 +1292,15 @@ int main() {
 <details>
 <summary><strong>📸 Output & Screenshots</strong></summary>
 
-```
-Thread 1 incremented counter: 1
-Thread 1 incremented counter: 2
-Thread 1 incremented counter: 3
-Thread 1 incremented counter: 4
-Thread 1 incremented counter: 5
-Thread 2 incremented counter: 6
-Thread 2 incremented counter: 7
-Thread 2 incremented counter: 8
-Thread 2 incremented counter: 9
-Thread 2 incremented counter: 10
-```
+![image](https://github.com/user-attachments/assets/bca50249-592c-4097-a98f-be4529d6a0a1)
+![image](https://github.com/user-attachments/assets/e9e5643a-3c90-489e-86a6-89aba5598e02)
+![image](https://github.com/user-attachments/assets/c8e77007-b6c0-4b25-af66-8f6ebe59ef19)
+![image](https://github.com/user-attachments/assets/74579d36-b1f5-4145-92f9-08f4cb903f55)
+![Image](https://github.com/user-attachments/assets/13a77314-a8c2-4c9d-b45a-a1333f6991b6)
 
-* Screenshot of terminal with mutex-protected increments.
-* Optional: `objdump` showing `lr.w` and `sc.w` usage.
 
 </details>
-```
+
 
 ---
 
@@ -1418,11 +1415,13 @@ qemu-system-riscv32 -nographic -machine virt -bios none \
 <details>
 <summary><strong>📸 Output & Screenshots</strong></summary>
 
-### ✅ Expected UART Output
+![image](https://github.com/user-attachments/assets/b79c6526-43b0-41ae-9703-19b9e207ac6c)
+![image](https://github.com/user-attachments/assets/57b1d3ef-7df9-4cd7-8516-306c8933c2e3)
+![image](https://github.com/user-attachments/assets/53dba741-cb46-4c45-8251-b099b68a25e9)
+![image](https://github.com/user-attachments/assets/e17c90e4-3ece-4f91-92b2-6099d262e4ac)
+![Image](https://github.com/user-attachments/assets/cfe2b36e-a654-48d1-a493-a2eadbbbe73f)
 
-```
-Hello from printf over UART!
-```
+
 
 This confirms that `printf()` is internally using `_write()`, and it's been redirected to the UART peripheral.
 
@@ -1431,26 +1430,24 @@ This confirms that `printf()` is internally using `_write()`, and it's been redi
 
 ---
 
-## 17. Endianness & Struct Packing
+## 17: Endianness Check (Little vs Big Endian)
 
 <details>
 <summary><strong>🧾 Instructions</strong></summary>
 
-## 🛠️ Objective
+### 🛠️ Objective
 
-Determine the endianness of a RISC-V RV32 system using a simple C trick with a union to inspect byte ordering.
-
----
-
-## ❓ Is RV32 Little-Endian?
-
-Yes — **RV32 is little-endian by default**, meaning the **least significant byte is stored first** in memory.
-
-To confirm this, we’ll use a **union** that allows accessing a `uint32_t` and its underlying bytes as a `uint8_t[4]` array.
+Determine the endianness of a RISC-V RV32 system using a union trick to inspect byte ordering.
 
 ---
 
-## 📄 C Code (Union Trick)
+### 🧠 Background
+
+In little-endian systems (like RV32 by default), the least significant byte of a multi-byte value is stored at the **lowest** memory address.
+
+---
+
+### 📄 main.c
 
 ```c
 #include <stdio.h>
@@ -1476,34 +1473,108 @@ int main() {
 
 ---
 
-## 🔍 Explanation
-
-If RV32 is **little-endian**, then the bytes will be laid out like this in memory:
-
-| Memory Address | Byte | Value  |
-| -------------- | ---- | ------ |
-| `&bytes[0]`    | LSB  | `0x04` |
-| `&bytes[1]`    |      | `0x03` |
-| `&bytes[2]`    |      | `0x02` |
-| `&bytes[3]`    | MSB  | `0x01` |
-
----
-
-## ⚙️ Compilation Command
+### ⚙️ Compilation Command
 
 ```bash
 riscv32-unknown-elf-gcc -Wall -O2 -ffreestanding -nostdlib \
-  -mabi=ilp32 -march=rv32imac \
+  -mabi=ilp32 -march=rv32imac_zicsr \
   -o endian.elf main.c syscalls.c crt0.S -T link.ld -lc -lgcc
 ```
 
 ---
 
-## 🚀 Run on QEMU
+### 🚀 Run on QEMU
 
 ```bash
 qemu-system-riscv32 -nographic -machine virt -bios none \
   -kernel endian.elf -serial mon:stdio
+```
+
+---
+
+### 📄 link.ld
+
+```ld
+ENTRY(_start)
+
+SECTIONS {
+  . = 0x80000000;
+
+  .text : {
+    *(.init)
+    *(.text*)
+  }
+
+  .rodata : {
+    *(.rodata*)
+  }
+
+  .data : {
+    *(.data*)
+  }
+
+  .bss : {
+    __bss_start = .;
+    *(.bss*)
+    *(COMMON)
+    __bss_end = .;
+    . = ALIGN(4);
+    _stack_top = . + 0x1000;
+    _end = .;
+  }
+}
+```
+
+---
+
+### 📄 crt0.S (Minimal Startup)
+
+```asm
+.section .init
+.global _start
+_start:
+    la a0, __bss_start
+    la a1, __bss_end
+1:
+    beq a0, a1, 2f
+    sw zero, 0(a0)
+    addi a0, a0, 4
+    j 1b
+2:
+    call main
+1:  j 1b
+```
+
+---
+
+### 📄 syscalls.c (Minimal Syscalls)
+
+```c
+#include <sys/stat.h>
+#include <stdint.h>
+
+extern int _end;
+static char *heap_end = (char *)&_end;
+
+caddr_t _sbrk(int incr) {
+    char *prev_heap_end = heap_end;
+    heap_end += incr;
+    return (caddr_t)prev_heap_end;
+}
+
+int _write(int file, char *ptr, int len) {
+    for (int i = 0; i < len; i++) {
+        volatile char *uart = (char *)0x10000000;
+        *uart = ptr[i];
+    }
+    return len;
+}
+
+int _read(int file, char *ptr, int len) { return 0; }
+int _close(int file) { return -1; }
+int _fstat(int file, struct stat *st) { return 0; }
+int _lseek(int file, int ptr, int dir) { return 0; }
+int _isatty(int file) { return 1; }
 ```
 
 </details>
@@ -1511,32 +1582,34 @@ qemu-system-riscv32 -nographic -machine virt -bios none \
 <details>
 <summary><strong>📸 Output & Screenshots</strong></summary>
 
-### ✅ Expected Output (for little-endian):
+![image](https://github.com/user-attachments/assets/b79c6526-43b0-41ae-9703-19b9e207ac6c)
+![image](https://github.com/user-attachments/assets/ae2367a4-98a6-4460-8432-94044d66f326)
+![image](https://github.com/user-attachments/assets/9544f93b-d59e-4ac4-929f-b86896c0f573)
+![image](https://github.com/user-attachments/assets/4f3d237a-8aaf-4e95-ae64-0dfd2a370c0e)
+![image](https://github.com/user-attachments/assets/b2764563-76aa-49be-a364-f862d7f495c9)
 
-```
-Byte 0: 0x04
-Byte 1: 0x03
-Byte 2: 0x02
-Byte 3: 0x01
-```
+---
 
-This confirms that the least significant byte (`0x04`) is stored at the lowest address, meaning **RV32 is little-endian**.
+### 🧾 Explanation
+
+| Memory Address | Byte Label | Value |
+| -------------- | ---------- | ----- |
+| `&bytes[0]`    | LSB        | 0x04  |
+| `&bytes[1]`    |            | 0x03  |
+| `&bytes[2]`    |            | 0x02  |
+| `&bytes[3]`    | MSB        | 0x01  |
+
+This confirms **little-endian** byte ordering: LSB is stored at the lowest memory address.
 
 </details>
 
-
 ---
+
 
 ## 🧾 Summary
 
-<details>
 
 
-## 🛠️ Objective
-
-These tasks are focused on building a complete, low-level understanding of **RISC-V-based system design**, simulation, and software bring-up. The goal was to remove the abstraction layers imposed by modern OS environments and experience what it means to program hardware directly, from the ground up.
-
----
 
 ## 📘 What is RISC-V?
 
