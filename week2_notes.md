@@ -1,5 +1,6 @@
 
-# Week 2 Notes – caravel.v Analysis
+# caravel.v Analysis
+![image](https://github.com/user-attachments/assets/56129171-25d7-4528-b0e2-d0c2d0f1941c)
 
 ## 1. Four Major Sub‑Modules Instantiated Inside `caravel`
 
